@@ -1,0 +1,46 @@
+# Pixel Service Build Stage
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY PeakVenturesPixelService/PeakVenturesPixelService.csproj .
+RUN dotnet restore
+COPY . .
+RUN dotnet build -c Release -o /app/build
+
+# Pixel Service Publish Stage
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish
+
+# Pixel Service Runtime Stage
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS runtime
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "PeakVenturesPixelService.dll"]
+
+-------------------------------------------------------------------------
+
+
+# Storage Service Build Stage
+FROM mcr.microsoft.com/dotnet/sdk:6.0 AS build
+WORKDIR /src
+COPY PeakVenturesStorageService/PeakVenturesStorageService.csproj .
+RUN dotnet restore
+COPY . .
+RUN dotnet build -c Release -o /app/build
+
+# Storage Service Publish Stage
+FROM build AS publish
+RUN dotnet publish -c Release -o /app/publish
+
+# Storage Service Runtime Stage
+FROM mcr.microsoft.com/dotnet/aspnet:6.0 AS runtime
+WORKDIR /app
+COPY --from=publish /app/publish .
+ENTRYPOINT ["dotnet", "PeakVenturesStorageService.dll"]
+
+----------------------------------------------------------------------------
+
+docker build -t pixel-service -f Path/To/Dockerfile.PixelService .
+docker build -t storage-service -f Path/To/Dockerfile.StorageService .
+docker run -d -p 8080:80 pixel-service
+docker run -d -p 8081:80 storage-service
+
